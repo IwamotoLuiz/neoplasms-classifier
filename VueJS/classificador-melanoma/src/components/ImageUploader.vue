@@ -50,7 +50,7 @@ export default {
       formData.append('file', this.selectedFile);
 
       try {
-        const response = await fetch('http://localhost:8000/predict', {
+        const response = await fetch('https://neoplasms-classifier.onrender.com/predict', {
           method: 'POST',
           body: formData
         });
