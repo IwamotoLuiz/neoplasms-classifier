@@ -1,5 +1,6 @@
 # backend/model/predictor.py
 
+import os
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
@@ -25,8 +26,9 @@ def load_model():
     model = models.efficientnet_v2_s(weights="DEFAULT")
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, 1)
 
-    # Corrige nomes se foi treinado com DataParallel
-    state_dict = torch.load("model/neoplasm_classifier.pth", map_location=device)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    MODEL_PATH = os.path.join(BASE_DIR, "neoplasm_classifier.pth")
+    state_dict = torch.load(MODEL_PATH, map_location=device)
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
         name = k.replace("module.", "")
