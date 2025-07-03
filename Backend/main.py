@@ -16,10 +16,6 @@ app.add_middleware(
 
 
 @app.post("/predict")
-@app.get("/ping")
-async def ping():
-    return {"message": "pong"}
-
 async def predict(file: UploadFile = File(...)):
     print("📥 Recebendo imagem:", file.filename)
     contents = await file.read()
@@ -34,3 +30,7 @@ async def predict(file: UploadFile = File(...)):
         print("❌ Erro no backend:", str(e))
         return {"prediction": "Erro interno no servidor"}
 
+
+@app.get("/ping")
+async def ping():
+    return {"message": "pong"}
