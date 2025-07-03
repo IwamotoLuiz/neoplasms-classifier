@@ -8,7 +8,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # especifique seu frontend em produção
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -16,6 +16,10 @@ app.add_middleware(
 
 
 @app.post("/predict")
+@app.get("/ping")
+async def ping():
+    return {"message": "pong"}
+
 async def predict(file: UploadFile = File(...)):
     print("📥 Recebendo imagem:", file.filename)
     contents = await file.read()
