@@ -1,12 +1,16 @@
 <script setup>
 import ImageUploader from './components/ImageUploader.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 </script>
 
 <template>
   <div class="page">
     <header class="page-header">
-      <h1>Classificação de neoplasmas cutâneos</h1>
-      <p>Uma rede neural analisa a imagem dermatoscópica e indica se a lesão parece benigna ou maligna.</p>
+      <div>
+        <h1>Classificação de neoplasmas cutâneos</h1>
+        <p>Uma rede neural analisa a imagem dermatoscópica e indica se a lesão parece benigna ou maligna.</p>
+      </div>
+      <ThemeToggle />
     </header>
     <main>
       <ImageUploader />
@@ -33,6 +37,10 @@ import ImageUploader from './components/ImageUploader.vue'
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px 32px;
   margin-bottom: 40px;
 }
 
@@ -91,6 +99,14 @@ main {
 @media (max-width: 760px) {
   .page {
     padding: 32px 20px 24px;
+  }
+
+  .page-header {
+    flex-direction: column-reverse;
+  }
+
+  .page-header .theme-toggle {
+    align-self: flex-end;
   }
 }
 </style>

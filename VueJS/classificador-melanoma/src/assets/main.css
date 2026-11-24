@@ -9,9 +9,30 @@
   --line-strong: #a9bdd1;
   --bg: #f7f9fc;
   --surface: #ffffff;
+  --stage: #17243a;
+  --on-blue: #ffffff;
   --malignant: #b42318;
   --benign: #0b6e5b;
   --warning: #8a4b00;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --ink: #e4ebf3;
+  --muted: #a5b3c4;
+  --blue: #6cb2ee;
+  --blue-dark: #8fc6f5;
+  --blue-tint: #16283c;
+  --line: #2a3a4e;
+  --line-strong: #4a6078;
+  --bg: #0f1823;
+  --surface: #162231;
+  --stage: #0a111a;
+  --on-blue: #0b1624;
+  --malignant: #ff8a7d;
+  --benign: #4fcfae;
+  --warning: #f0b35e;
+  color-scheme: dark;
 }
 
 *,

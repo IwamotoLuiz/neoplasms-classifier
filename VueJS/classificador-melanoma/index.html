@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Antes da primeira pintura, para a tela não piscar no tema errado
+      (function () {
+        var saved = null
+        try { saved = localStorage.getItem('theme') } catch (error) { /* armazenamento bloqueado */ }
+        var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
     <title>Classificação de neoplasmas cutâneos</title>
   </head>
   <body>

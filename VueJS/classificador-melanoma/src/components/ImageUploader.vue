@@ -183,8 +183,8 @@ export default {
 
 .frame--filled,
 .frame--filled:hover {
-  border: 2px solid var(--ink);
-  background: var(--ink);
+  border: 2px solid var(--stage);
+  background: var(--stage);
 }
 
 .frame--filled.frame--dragging {
@@ -244,7 +244,7 @@ export default {
   border: 0;
   border-radius: 8px;
   background: var(--blue);
-  color: #fff;
+  color: var(--on-blue);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
