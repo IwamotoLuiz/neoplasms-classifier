@@ -1,322 +1,289 @@
 <template>
-  <div class="upload-container">
-    <h2>Selecionar Imagem</h2>
-    <div class="file-input-wrapper">
-      <label for="file-upload" class="custom-file-upload">
-        Escolher arquivo
+  <div class="workspace">
+    <section class="picker" aria-label="Imagem dermatoscópica">
+      <label
+        for="file-upload"
+        class="frame"
+        :class="{ 'frame--filled': imageUrl, 'frame--dragging': isDragging }"
+        @dragover.prevent="isDragging = true"
+        @dragleave="isDragging = false"
+        @drop.prevent="onDrop"
+      >
+        <img v-if="imageUrl" :src="imageUrl" alt="Imagem selecionada" class="image-preview">
+        <span v-else class="frame-hint">
+          <strong>Escolha a imagem</strong>
+          <span>ou arraste o arquivo para cá</span>
+          <span class="frame-formats">Imagem dermatoscópica em JPEG ou PNG</span>
+        </span>
       </label>
-      <input id="file-upload" type="file" @change="onFileSelected" accept="image/*">
-      <span class="file-name">{{ selectedFileName || 'Nenhum arquivo selecionado' }}</span>
-    </div>
+      <input id="file-upload" type="file" accept="image/*" @change="onFileSelected">
 
-    <div v-if="imageUrl" class="preview-section">
-      <h3>Pré-visualização:</h3>
-      <img :src="imageUrl" alt="Image preview" class="image-preview">
-    </div>
+      <div class="picker-actions">
+        <button class="upload-button" :disabled="!imageUrl || isLoading" @click="uploadImage">
+          Classificar imagem
+        </button>
+        <label v-if="imageUrl" for="file-upload" class="change-image">Trocar imagem</label>
+      </div>
+      <p v-if="selectedFileName" class="file-name">{{ selectedFileName }}</p>
+    </section>
 
-    <button @click="uploadImage" class="upload-button" :disabled="!imageUrl || isLoading">
-      Enviar Imagem
-    </button>
-
-    <div class="prediction-result">
-      <h3>Resultado da Predição:</h3>
-      <p v-if="isLoading" class="loading-message">Carregando...</p>
-      <p v-else-if="prediction" :class="predictionClass">{{ prediction }}</p>
-      <p v-else class="initial-message">Envie uma imagem para obter a predição.</p>
-      <p v-if="probabilityText" class="probability-message">Probabilidade de malignidade: {{ probabilityText }}</p>
-    </div>
+    <PredictionResult
+      :is-loading="isLoading"
+      :elapsed="elapsed"
+      :prediction="prediction"
+      :probability="probability"
+      :error="error"
+      :has-image="Boolean(imageUrl)"
+    />
   </div>
 </template>
 
 <script>
-import { formatProbability } from '../utils/probability.js'
+import PredictionResult from './PredictionResult.vue'
+import { httpErrorMessage, resultKind } from '../utils/result.js'
+
+// URL da API (local: 'http://127.0.0.1:8000/predict')
+const API_URL = 'https://neoplasms-classifier.onrender.com/predict'
 
 export default {
   name: 'ImageUploader',
+  components: { PredictionResult },
   data() {
     return {
       selectedFile: null,
-      imageUrl: null,
       selectedFileName: '',
+      imageUrl: null,
       prediction: null,
       probability: null,
-      isLoading: false, // NOVO: Variável para controlar o estado de carregamento
-    };
-  },
-  computed: {
-    probabilityText() {
-      return formatProbability(this.probability);
-    },
-    // Propriedade computada para determinar a classe CSS da predição
-    predictionClass() {
-      if (this.prediction) {
-        // Converte a predição para minúsculas e remove espaços para comparação robusta
-        const lowerCasePrediction = this.prediction.toLowerCase().trim();
-
-        // Ajuste estes termos para o que sua API realmente retorna para cada tipo
-        if (lowerCasePrediction.includes('maligno') || lowerCasePrediction.includes('cancer') || lowerCasePrediction.includes('melanoma')) {
-          return 'malignant-prediction';
-        } else if (lowerCasePrediction.includes('benigno') || lowerCasePrediction.includes('saudavel')) {
-          return 'benign-prediction';
-        } else if (lowerCasePrediction.startsWith('erro:')) { // Se for uma mensagem de erro
-          return 'error-message';
-        }
-      }
-      return ''; // Retorna vazio se não houver predição ou se não corresponder
+      error: null,
+      isLoading: false,
+      isDragging: false,
+      elapsed: 0,
     }
+  },
+  created() {
+    this.request = null
+    this.timer = null
+  },
+  beforeUnmount() {
+    this.cancelRequest()
+    if (this.imageUrl) URL.revokeObjectURL(this.imageUrl)
   },
   methods: {
     onFileSelected(event) {
-      const file = event.target.files[0];
-      if (file) {
-        this.selectedFile = file;
-        this.selectedFileName = file.name;
-        this.imageUrl = URL.createObjectURL(file);
-        this.prediction = null; // Limpa qualquer predição anterior
-        this.probability = null;
-        this.isLoading = false; // Garante que não esteja no estado de carregamento ao selecionar um novo arquivo
-        console.log("🖼️ Arquivo selecionado:", file.name);
-      } else {
-        this.selectedFile = null;
-        this.selectedFileName = '';
-        this.imageUrl = null;
-        this.prediction = null;
-        this.probability = null;
-        this.isLoading = false;
-        console.warn("⚠️ Nenhum arquivo foi selecionado.");
-      }
+      const file = event.target.files[0]
+      // Fechar o seletor sem escolher nada mantém a imagem atual
+      if (file) this.selectFile(file)
+      event.target.value = ''
+    },
+    onDrop(event) {
+      this.isDragging = false
+      const file = event.dataTransfer.files[0]
+      if (file) this.selectFile(file)
+    },
+    selectFile(file) {
+      // A resposta da imagem anterior não pode aparecer ao lado da nova
+      this.cancelRequest()
+      this.clearResult()
+      if (this.imageUrl) URL.revokeObjectURL(this.imageUrl)
+      this.selectedFile = file
+      this.selectedFileName = file.name
+      this.imageUrl = URL.createObjectURL(file)
+    },
+    clearResult() {
+      this.prediction = null
+      this.probability = null
+      this.error = null
+    },
+    cancelRequest() {
+      if (this.request) this.request.abort()
+      this.request = null
+      this.stopTimer()
+      this.isLoading = false
+    },
+    startTimer() {
+      const startedAt = Date.now()
+      this.elapsed = 0
+      this.timer = setInterval(() => {
+        this.elapsed = Math.floor((Date.now() - startedAt) / 1000)
+      }, 1000)
+    },
+    stopTimer() {
+      clearInterval(this.timer)
+      this.timer = null
     },
     async uploadImage() {
-      if (!this.selectedFile) {
-        console.warn("⚠️ Nenhum arquivo selecionado para upload.");
-        return;
-      }
+      if (!this.selectedFile) return
 
-      this.isLoading = true; // Inicia o estado de carregamento
-      this.prediction = null; // Limpa a predição anterior para que "Carregando..." apareça
-      this.probability = null;
+      const request = new AbortController()
+      this.request = request
+      this.clearResult()
+      this.isLoading = true
+      this.startTimer()
 
-      console.log("📤 Enviando imagem para o backend...");
-
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
-
-      // Defina o URL da sua API (local ou remota)
-      const apiUrl = 'https://neoplasms-classifier.onrender.com/predict';
+      const formData = new FormData()
+      formData.append('file', this.selectedFile)
 
       try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          body: formData
-        });
-
+        const response = await fetch(API_URL, { method: 'POST', body: formData, signal: request.signal })
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ Erro da API:", response.status, errorText);
-          this.prediction = `Erro: ${response.status} - ${errorText}`; // Exibe erro HTTP no frontend
-          return;
+          this.error = httpErrorMessage(response.status)
+          return
         }
 
-        const data = await response.json();
-        console.log("✅ Resposta da API:", data);
+        const data = await response.json()
+        if (request.signal.aborted) return
 
-        // Verifica o formato da resposta da API antes de atribuir
-        if (data && data.prediction) {
-          this.prediction = data.prediction;
-          this.probability = data.probability ?? null;
-        } else {
-          this.prediction = "Formato de resposta inesperado da API.";
-          console.warn("Formato de resposta inesperado:", data);
+        if (resultKind(data?.prediction) === 'error' || !data?.prediction) {
+          console.error('Resposta inesperada da API:', data)
+          this.error = 'A API não conseguiu analisar este arquivo. Confira se é uma imagem válida.'
+          return
         }
-
+        this.prediction = data.prediction
+        this.probability = data.probability ?? null
       } catch (error) {
-        console.error("❌ Erro ao enviar imagem ou processar resposta:", error);
-        this.prediction = `Erro ao conectar com a API: ${error.message}`; // Exibe erros de rede/conexão
+        if (request.signal.aborted) return
+        console.error('Erro ao consultar a API:', error)
+        this.error = 'Não foi possível conectar à API. Confira a internet e tente de novo.'
       } finally {
-        this.isLoading = false; // Finaliza o estado de carregamento (sempre executa)
+        if (this.request === request) this.cancelRequest()
       }
-    }
-  }
-};
+    },
+  },
+}
 </script>
 
 <style scoped>
-.upload-container {
-  max-width: 500px;
-  margin: 40px auto;
-  text-align: center;
-  padding: 30px;
-  border: 2px dashed #444;
-  border-radius: 12px;
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
 }
 
-h2 {
-  color: #ffffff;
-  margin-bottom: 25px;
-  font-size: 2em;
-}
-
-h3 {
-  color: #bbbbbb;
-  margin-top: 30px;
-  margin-bottom: 15px;
-  font-size: 1.5em;
-}
-
-.file-input-wrapper {
+.frame {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
-}
-
-.custom-file-upload {
-  border: 1px solid #007bff;
-  display: inline-block;
-  padding: 10px 20px;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 2px dashed var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
   cursor: pointer;
-  background-color: #007bff;
-  color: white;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
+  overflow: hidden;
+  transition: border-color 0.15s, background-color 0.15s;
 }
 
-.custom-file-upload:hover {
-  background-color: #0056b3;
+.frame:hover,
+.frame--dragging {
+  border-color: var(--blue);
+  background: var(--blue-tint);
 }
 
-input[type="file"] {
-  display: none;
+.frame--filled,
+.frame--filled:hover {
+  border: 2px solid var(--ink);
+  background: var(--ink);
 }
 
-.file-name {
-  color: #ccc;
-  font-style: italic;
-}
-
-.preview-section {
-  margin-top: 20px;
+.frame--filled.frame--dragging {
+  border-color: var(--blue);
 }
 
 .image-preview {
-  max-width: 100%;
-  height: auto;
-  border: 1px solid #555;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  display: block;
-  margin: 0 auto 30px auto;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.frame-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.frame-hint strong {
+  font-size: 1.25rem;
+  color: var(--blue);
+}
+
+.frame-formats {
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+/* Continua acessível pelo teclado, ao contrário de display: none */
+#file-upload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.picker:has(#file-upload:focus-visible) .frame {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: 20px;
 }
 
 .upload-button {
-  background-color: rgb(236, 236, 236);
-  color: black;
-  padding: 12px 25px;
-  border: none;
-  border-radius: 6px;
+  padding: 14px 28px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 1.1em;
-  transition: background-color 0.3s ease;
-  margin-bottom: 20px;
+  transition: background-color 0.15s;
 }
 
 .upload-button:hover {
-  background-color: rgb(201, 204, 204);
+  background: var(--blue-dark);
+}
+
+.upload-button:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .upload-button:disabled {
-  background-color: #6c757d; /* Cor quando desabilitado */
+  background: var(--line);
+  color: var(--muted);
   cursor: not-allowed;
-  opacity: 0.7; /* Suaviza a aparência quando desabilitado */
 }
 
-/* Estilos para a seção de resultado da predição */
-.prediction-result {
-  margin-top: 25px;
-  padding: 15px;
-  border: 1px solid #007bff;
-  border-radius: 8px;
-  background-color: #333;
-  color: #f5f5f5;
-  font-size: 1.2em;
-  font-weight: bold;
-  text-align: center;
-  word-wrap: break-word;
-  min-height: 50px; /* Garante que a caixa não encolha demais */
-  display: flex; /* Para centralizar o conteúdo verticalmente */
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.change-image {
+  color: var(--blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
 }
 
-.prediction-result h3 {
-  margin-top: 0;
-  color: #fff;
-  font-size: 1.3em;
+.file-name {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
-.prediction-result p {
-  margin-bottom: 0;
-  font-size: 25px;
-  /* A cor padrão é removida pois será definida pelas classes específicas */
-}
-
-/* NOVAS CLASSES PARA CORES CONDICIONAIS E ESTADOS */
-.malignant-prediction {
-  color: #ff4444; /* Vermelho vibrante para maligno */
-  font-weight: bold;
-}
-
-.benign-prediction {
-  color: #44cc44; /* Verde suave para benigno */
-  font-weight: bold;
-}
-
-.prediction-result .probability-message {
-  color: #f5f5f5;
-  font-size: 18px;
-  font-weight: normal;
-  margin-top: 8px;
-}
-
-.loading-message {
-  color: #ffd700; /* Dourado/Amarelo para mensagem de carregamento */
-  font-style: italic;
-  animation: pulse 1.5s infinite alternate; /* Animação simples de pulsação */
-}
-
-.error-message {
-  color: #ffbb00; /* Laranja para mensagens de erro */
-  font-weight: bold;
-}
-
-.initial-message {
-    color: #999; /* Cor mais suave para a mensagem inicial */
-    font-style: italic;
-    font-size: 0.9em; /* Um pouco menor para a mensagem inicial */
-}
-
-/* Animação de pulsação para o texto de carregamento */
-@keyframes pulse {
-  0% { opacity: 0.1; }
-  100% { opacity: 1; }
-}
-
-/* Global styles (sempre no final do seu style block) */
-:global(body) {
-  background-color: #121212;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  box-sizing: border-box;
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
 }
 </style>

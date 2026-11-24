@@ -1,34 +1,30 @@
-@import './base.css';
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+/* Mesma paleta dos slides do TCC II */
+:root {
+  --ink: #17243a;
+  --muted: #55647a;
+  --blue: #1769aa;
+  --blue-dark: #12568c;
+  --blue-tint: #e9f2fa;
+  --line: #d9e2ec;
+  --line-strong: #a9bdd1;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --malignant: #b42318;
+  --benign: #0b6e5b;
+  --warning: #8a4b00;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: flex;
-    padding: 0 2rem;
-  }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
 }
