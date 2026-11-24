@@ -45,17 +45,24 @@ def load_model():
 model = load_model()
 
 
-#Função de predição principal
-def predict_image(image: Image.Image) -> str:
+# Corte sobre a probabilidade de malignidade
+THRESHOLD = 0.5
+
+
+def label_for(probability: float) -> str:
+    return "Maligno" if probability >= THRESHOLD else "Benigno"
+
+
+# Probabilidade de a lesão ser maligna, entre 0 e 1
+def predict_probability(image: Image.Image) -> float:
     image = image.convert("RGB")
     tensor = val_transformer(image).unsqueeze(0).to(device)
 
     with torch.no_grad():
         output = model(tensor)
-        prediction = torch.sigmoid(output).item()  # como é 1 saída (sigmóide)
+        return torch.sigmoid(output).item()  # como é 1 saída (sigmóide)
 
-    # Simples binarização (ajuste conforme necessidade)
-    if prediction >= 0.5:
-        return "Maligno"
-    else:
-        return "Benigno"
+
+#Função de predição principal
+def predict_image(image: Image.Image) -> str:
+    return label_for(predict_probability(image))

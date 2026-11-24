@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from Model.model_load import predict_image
+from Model.model_load import label_for, predict_probability
 from PIL import Image
 import io
 
@@ -23,9 +23,10 @@ async def predict(file: UploadFile = File(...)):
     try:
         image = Image.open(io.BytesIO(contents)).convert("RGB")
         print("🧠 Chamando modelo...")
-        prediction = predict_image(image)
+        probability = predict_probability(image)
+        prediction = label_for(probability)
         print("✅ Predição:", prediction)
-        return {"prediction": prediction}
+        return {"prediction": prediction, "probability": probability}
     except Exception as e:
         print("❌ Erro no backend:", str(e))
         return {"prediction": "Erro interno no servidor"}

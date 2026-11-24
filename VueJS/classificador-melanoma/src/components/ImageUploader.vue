@@ -23,11 +23,14 @@
       <p v-if="isLoading" class="loading-message">Carregando...</p>
       <p v-else-if="prediction" :class="predictionClass">{{ prediction }}</p>
       <p v-else class="initial-message">Envie uma imagem para obter a predição.</p>
+      <p v-if="probabilityText" class="probability-message">Probabilidade de malignidade: {{ probabilityText }}</p>
     </div>
   </div>
 </template>
 
 <script>
+import { formatProbability } from '../utils/probability.js'
+
 export default {
   name: 'ImageUploader',
   data() {
@@ -36,10 +39,14 @@ export default {
       imageUrl: null,
       selectedFileName: '',
       prediction: null,
+      probability: null,
       isLoading: false, // NOVO: Variável para controlar o estado de carregamento
     };
   },
   computed: {
+    probabilityText() {
+      return formatProbability(this.probability);
+    },
     // Propriedade computada para determinar a classe CSS da predição
     predictionClass() {
       if (this.prediction) {
@@ -66,6 +73,7 @@ export default {
         this.selectedFileName = file.name;
         this.imageUrl = URL.createObjectURL(file);
         this.prediction = null; // Limpa qualquer predição anterior
+        this.probability = null;
         this.isLoading = false; // Garante que não esteja no estado de carregamento ao selecionar um novo arquivo
         console.log("🖼️ Arquivo selecionado:", file.name);
       } else {
@@ -73,6 +81,7 @@ export default {
         this.selectedFileName = '';
         this.imageUrl = null;
         this.prediction = null;
+        this.probability = null;
         this.isLoading = false;
         console.warn("⚠️ Nenhum arquivo foi selecionado.");
       }
@@ -85,6 +94,7 @@ export default {
 
       this.isLoading = true; // Inicia o estado de carregamento
       this.prediction = null; // Limpa a predição anterior para que "Carregando..." apareça
+      this.probability = null;
 
       console.log("📤 Enviando imagem para o backend...");
 
@@ -92,7 +102,7 @@ export default {
       formData.append('file', this.selectedFile);
 
       // Defina o URL da sua API (local ou remota)
-      const apiUrl = 'https://neoplasms-classifier.onrender.com/predict'; // OU 'http://127.0.0.1:8000/predict';
+      const apiUrl = 'https://neoplasms-classifier.onrender.com/predict';
 
       try {
         const response = await fetch(apiUrl, {
@@ -113,6 +123,7 @@ export default {
         // Verifica o formato da resposta da API antes de atribuir
         if (data && data.prediction) {
           this.prediction = data.prediction;
+          this.probability = data.probability ?? null;
         } else {
           this.prediction = "Formato de resposta inesperado da API.";
           console.warn("Formato de resposta inesperado:", data);
@@ -263,6 +274,13 @@ input[type="file"] {
 .benign-prediction {
   color: #44cc44; /* Verde suave para benigno */
   font-weight: bold;
+}
+
+.prediction-result .probability-message {
+  color: #f5f5f5;
+  font-size: 18px;
+  font-weight: normal;
+  margin-top: 8px;
 }
 
 .loading-message {
