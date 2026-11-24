@@ -1,0 +1,8 @@
+*
+!Backend/main.py
+!Backend/Model/model_load.py
+!Backend/Model/neoplasm_classifier.pth
+!VueJS/classificador-melanoma
+VueJS/classificador-melanoma/node_modules
+VueJS/classificador-melanoma/dist
+!demo/servidor.py
