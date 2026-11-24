@@ -13,6 +13,10 @@ import ImageUploader from './components/ImageUploader.vue'
     </main>
     <footer class="page-footer">
       <span>Trabalho de Conclusão de Curso de Luiz Paulo Iwamoto, Sistemas de Informação, Unesp Bauru</span>
+      <span class="samples">
+        <a href="/amostras/amostra-1.jpg" download>amostra 1</a> ·
+        <a href="/amostras/amostra-2.jpg" download>amostra 2</a>
+      </span>
       <a href="https://github.com/IwamotoLuiz/neoplasms-classifier">Código no GitHub</a>
     </footer>
   </div>
@@ -71,6 +75,17 @@ main {
 
 .page-footer a {
   color: var(--blue);
+}
+
+/* Discretos de propósito: imagens de apoio para a demonstração */
+.page-footer .samples a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.page-footer .samples a:hover,
+.page-footer .samples a:focus-visible {
+  text-decoration: underline;
 }
 
 @media (max-width: 760px) {

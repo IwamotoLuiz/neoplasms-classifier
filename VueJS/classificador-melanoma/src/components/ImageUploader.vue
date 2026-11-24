@@ -40,10 +40,11 @@
 
 <script>
 import PredictionResult from './PredictionResult.vue'
+import { apiUrl } from '../utils/api.js'
 import { httpErrorMessage, resultKind } from '../utils/result.js'
 
-// URL da API (local: 'http://127.0.0.1:8000/predict')
-const API_URL = 'https://neoplasms-classifier.onrender.com/predict'
+// URL da API (local: VITE_API_URL=http://127.0.0.1:8000/predict)
+const API_URL = apiUrl(import.meta.env)
 
 export default {
   name: 'ImageUploader',
