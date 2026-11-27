@@ -28,6 +28,7 @@ import ThemeToggle from './components/ThemeToggle.vue'
       <span class="samples">
         <a href="/amostras/amostra-1.jpg" download>amostra 1</a>
         <a href="/amostras/amostra-2.jpg" download>amostra 2</a>
+        <a href="/amostras/amostra-3.jpg" download>amostra 3</a>
       </span>
       <a class="repo" href="https://github.com/IwamotoLuiz/neoplasms-classifier">Código no GitHub</a>
     </footer>

@@ -5,8 +5,12 @@ import { readFileSync } from 'node:fs'
 const app = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8')
 const links = [...app.matchAll(/<a\s[^>]*href="(\/amostras\/[^"]+)"[^>]*>/g)]
 
-test('offers two sample images as downloads', () => {
-  assert.deepEqual(links.map((link) => link[1]), ['/amostras/amostra-1.jpg', '/amostras/amostra-2.jpg'])
+test('offers three sample images as downloads', () => {
+  assert.deepEqual(links.map((link) => link[1]), [
+    '/amostras/amostra-1.jpg',
+    '/amostras/amostra-2.jpg',
+    '/amostras/amostra-3.jpg',
+  ])
   for (const [tag] of links) assert.match(tag, /\sdownload[\s>=]/)
 })
 

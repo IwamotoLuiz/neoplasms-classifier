@@ -28,7 +28,7 @@ def test_ping_still_answers():
     assert client.get("/ping").json() == {"message": "pong"}
 
 
-@pytest.mark.parametrize("name", ["amostra-1.jpg", "amostra-2.jpg"])
+@pytest.mark.parametrize("name", ["amostra-1.jpg", "amostra-2.jpg", "amostra-3.jpg"])
 def test_samples_are_served_as_jpeg(name):
     response = client.get(f"/amostras/{name}")
     assert response.status_code == 200
@@ -39,6 +39,13 @@ def test_samples_cover_both_results():
     benign, malignant = classify("amostra-1.jpg"), classify("amostra-2.jpg")
     assert benign["prediction"] == "Benigno" and benign["probability"] < 0.01
     assert malignant["prediction"] == "Maligno" and malignant["probability"] > 0.99
+
+
+def test_third_sample_is_an_uncertain_case():
+    # ISIC_0010121, atypical nevus confirmed by histopathology: benign, but close to the cut
+    uncertain = classify("amostra-3.jpg")
+    assert uncertain["prediction"] == "Benigno"
+    assert 0.3 < uncertain["probability"] < 0.5
 
 
 def test_unknown_path_is_not_found():
