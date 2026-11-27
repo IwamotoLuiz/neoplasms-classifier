@@ -1,34 +1,37 @@
-/* Mesma paleta dos slides do TCC II */
+/* Escuro por padrão. O azul de destaque é o mesmo dos slides do TCC II */
 :root {
-  --ink: #17243a;
-  --muted: #55647a;
+  --ink: #15181c;
+  --muted: #59616c;
   --blue: #1769aa;
   --blue-dark: #12568c;
-  --blue-tint: #e9f2fa;
-  --line: #d9e2ec;
-  --line-strong: #a9bdd1;
-  --bg: #f7f9fc;
+  --blue-tint: #e8f1f9;
+  --line: #dadee3;
+  --line-strong: #b4bcc6;
+  --bg: #eef0f2;
   --surface: #ffffff;
-  --stage: #17243a;
+  --well: #e6e9ec;
+  --stage: #0d0f11;
   --on-blue: #ffffff;
   --malignant: #b42318;
   --benign: #0b6e5b;
   --warning: #8a4b00;
+  --mono: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, 'DejaVu Sans Mono', monospace;
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --ink: #e4ebf3;
-  --muted: #a5b3c4;
-  --blue: #6cb2ee;
-  --blue-dark: #8fc6f5;
-  --blue-tint: #16283c;
-  --line: #2a3a4e;
-  --line-strong: #4a6078;
-  --bg: #0f1823;
-  --surface: #162231;
-  --stage: #0a111a;
-  --on-blue: #0b1624;
+  --ink: #e5e7ea;
+  --muted: #969ea8;
+  --blue: #6aaee8;
+  --blue-dark: #8dc2f0;
+  --blue-tint: #132231;
+  --line: #24282d;
+  --line-strong: #3a4047;
+  --bg: #0f1113;
+  --surface: #16191c;
+  --well: #0b0c0e;
+  --stage: #050607;
+  --on-blue: #0a1520;
   --malignant: #ff8a7d;
   --benign: #4fcfae;
   --warning: #f0b35e;
@@ -46,6 +49,6 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.5;
 }

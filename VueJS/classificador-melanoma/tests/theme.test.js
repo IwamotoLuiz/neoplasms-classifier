@@ -31,7 +31,7 @@ test('both themes define the same colors', () => {
 })
 
 test('the dark theme is actually dark', () => {
-  for (const name of ['bg', 'surface', 'stage', 'blue-tint']) {
+  for (const name of ['bg', 'surface', 'well', 'stage', 'blue-tint']) {
     assert.ok(luminance(themes.dark[name]) < 0.05, `${name} ${themes.dark[name]}`)
   }
 })
@@ -40,6 +40,9 @@ const pairs = [
   ['ink', 'bg'], ['ink', 'blue-tint'], ['muted', 'bg'], ['muted', 'surface'], ['muted', 'blue-tint'],
   ['blue', 'bg'], ['blue', 'surface'], ['blue', 'blue-tint'], ['on-blue', 'blue'], ['on-blue', 'blue-dark'],
   ['malignant', 'bg'], ['benign', 'bg'], ['warning', 'bg'],
+  // The result panel and the empty image area sit on surface and well
+  ['ink', 'surface'], ['malignant', 'surface'], ['benign', 'surface'], ['warning', 'surface'],
+  ['ink', 'well'], ['muted', 'well'], ['blue', 'well'],
 ]
 
 for (const [theme, color] of Object.entries(themes)) {
@@ -70,4 +73,18 @@ test('switches between the two themes and names the next one', () => {
 test('the theme is set before the page is painted', () => {
   const html = read('../index.html')
   assert.match(html.split('</head>')[0], /dataset\.theme/)
+})
+
+test('opens in the dark theme unless light was chosen before', () => {
+  const script = read('../index.html').split('<script>')[1].split('</script>')[0]
+  const themeFor = (storage) => {
+    const document = { documentElement: { dataset: {} } }
+    new Function('document', 'localStorage', script)(document, storage)
+    return document.documentElement.dataset.theme
+  }
+  const saved = (value) => ({ getItem: () => value })
+  assert.equal(themeFor(saved(null)), 'dark')
+  assert.equal(themeFor(saved('dark')), 'dark')
+  assert.equal(themeFor(saved('light')), 'light')
+  assert.equal(themeFor({ getItem: () => { throw new Error('blocked') } }), 'dark')
 })

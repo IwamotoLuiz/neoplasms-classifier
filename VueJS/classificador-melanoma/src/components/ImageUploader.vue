@@ -1,46 +1,75 @@
 <template>
-  <div class="workspace">
+  <div class="viewer">
     <section class="picker" aria-label="Imagem dermatoscópica">
       <label
         for="file-upload"
-        class="frame"
-        :class="{ 'frame--filled': imageUrl, 'frame--dragging': isDragging }"
+        class="stage"
+        :class="{ 'stage--filled': imageUrl, 'stage--dragging': isDragging }"
         @dragover.prevent="isDragging = true"
         @dragleave="isDragging = false"
         @drop.prevent="onDrop"
       >
-        <img v-if="imageUrl" :src="imageUrl" alt="Imagem selecionada" class="image-preview">
-        <span v-else class="frame-hint">
-          <strong>Escolha a imagem</strong>
-          <span>ou arraste o arquivo para cá</span>
-          <span class="frame-formats">Imagem dermatoscópica em JPEG ou PNG</span>
+        <img v-if="imageUrl" :src="imageUrl" alt="Imagem selecionada" class="image-preview" @load="onImageLoad">
+        <span v-else class="stage-hint">
+          <span class="corner corner--tl" aria-hidden="true"></span>
+          <span class="corner corner--tr" aria-hidden="true"></span>
+          <span class="corner corner--bl" aria-hidden="true"></span>
+          <span class="corner corner--br" aria-hidden="true"></span>
+          <svg class="lens" viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+            <circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <circle cx="24" cy="24" r="11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" />
+            <path d="M24 1v8M24 39v8M1 24h8M39 24h8" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          <strong>{{ isDragging ? 'Solte para abrir a imagem' : 'Abrir imagem dermatoscópica' }}</strong>
+          <span>Clique para escolher ou arraste o arquivo para cá</span>
         </span>
       </label>
       <input id="file-upload" type="file" accept="image/*" @change="onFileSelected">
 
-      <div class="picker-actions">
+      <div class="infobar">
+        <template v-if="imageUrl">
+          <span class="file-name" :title="selectedFileName">{{ selectedFileName }}</span>
+          <span v-for="detail in fileDetails" :key="detail" class="file-detail">{{ detail }}</span>
+          <label for="file-upload" class="change-image">Trocar imagem</label>
+        </template>
+        <template v-else>
+          <span>Nenhuma imagem aberta</span>
+          <span class="file-detail">JPEG ou PNG</span>
+        </template>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Análise">
+      <PredictionResult
+        :is-loading="isLoading"
+        :elapsed="elapsed"
+        :prediction="prediction"
+        :probability="probability"
+        :error="error"
+        :has-image="Boolean(imageUrl)"
+      />
+
+      <div class="panel-foot">
         <button class="upload-button" :disabled="!imageUrl || isLoading" @click="uploadImage">
           Classificar imagem
         </button>
-        <label v-if="imageUrl" for="file-upload" class="change-image">Trocar imagem</label>
+        <dl class="model">
+          <div><dt>Modelo</dt><dd>EfficientNetV2-S</dd></div>
+          <div><dt>Entrada</dt><dd>112 × 112 px</dd></div>
+          <div><dt>Corte</dt><dd>50%</dd></div>
+        </dl>
+        <p class="notice">
+          Apoio ao diagnóstico, para uso de profissionais da saúde. Não substitui a avaliação clínica nem a biópsia.
+        </p>
       </div>
-      <p v-if="selectedFileName" class="file-name">{{ selectedFileName }}</p>
-    </section>
-
-    <PredictionResult
-      :is-loading="isLoading"
-      :elapsed="elapsed"
-      :prediction="prediction"
-      :probability="probability"
-      :error="error"
-      :has-image="Boolean(imageUrl)"
-    />
+    </aside>
   </div>
 </template>
 
 <script>
 import PredictionResult from './PredictionResult.vue'
 import { apiUrl } from '../utils/api.js'
+import { formatDimensions, formatFileSize } from '../utils/file.js'
 import { httpErrorMessage, resultKind } from '../utils/result.js'
 
 // URL da API (local: VITE_API_URL=http://127.0.0.1:8000/predict)
@@ -54,6 +83,8 @@ export default {
       selectedFile: null,
       selectedFileName: '',
       imageUrl: null,
+      imageWidth: null,
+      imageHeight: null,
       prediction: null,
       probability: null,
       error: null,
@@ -61,6 +92,14 @@ export default {
       isDragging: false,
       elapsed: 0,
     }
+  },
+  computed: {
+    fileDetails() {
+      return [
+        formatDimensions(this.imageWidth, this.imageHeight),
+        formatFileSize(this.selectedFile?.size),
+      ].filter(Boolean)
+    },
   },
   created() {
     this.request = null
@@ -82,6 +121,10 @@ export default {
       const file = event.dataTransfer.files[0]
       if (file) this.selectFile(file)
     },
+    onImageLoad(event) {
+      this.imageWidth = event.target.naturalWidth
+      this.imageHeight = event.target.naturalHeight
+    },
     selectFile(file) {
       // A resposta da imagem anterior não pode aparecer ao lado da nova
       this.cancelRequest()
@@ -89,6 +132,8 @@ export default {
       if (this.imageUrl) URL.revokeObjectURL(this.imageUrl)
       this.selectedFile = file
       this.selectedFileName = file.name
+      this.imageWidth = null
+      this.imageHeight = null
       this.imageUrl = URL.createObjectURL(file)
     },
     clearResult() {
@@ -155,66 +200,118 @@ export default {
 </script>
 
 <style scoped>
-.workspace {
+/* Uma janela só: a imagem à esquerda e a análise à direita, como num visualizador */
+.viewer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 40px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
 }
 
-.frame {
+.picker {
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
-  border: 2px dashed var(--line-strong);
-  border-radius: 10px;
-  background: var(--surface);
+  /* Largura fixa: sem ela, o aspect-ratio encolhe o palco quando a altura bate no limite */
+  width: 100%;
+  min-height: 360px;
+  max-height: calc(100vh - 210px);
+  aspect-ratio: 4 / 3;
+  background: var(--well);
   cursor: pointer;
   overflow: hidden;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition: background-color 0.15s;
 }
 
-.frame:hover,
-.frame--dragging {
-  border-color: var(--blue);
+.stage:hover,
+.stage--dragging {
   background: var(--blue-tint);
 }
 
-.frame--filled,
-.frame--filled:hover {
-  border: 2px solid var(--stage);
+.stage--filled,
+.stage--filled:hover {
   background: var(--stage);
 }
 
-.frame--filled.frame--dragging {
-  border-color: var(--blue);
+.stage--dragging::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px solid var(--blue);
+  border-radius: 4px;
+  pointer-events: none;
 }
 
+/* Absoluta para centralizar mesmo quando a altura do palco é limitada pela tela */
 .image-preview {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.frame-hint {
+.stage-hint {
+  position: absolute;
+  inset: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
   padding: 24px;
-  text-align: center;
   color: var(--muted);
+  text-align: center;
 }
 
-.frame-hint strong {
-  font-size: 1.25rem;
+.stage-hint strong {
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.stage-hint span {
+  font-size: 0.925rem;
+}
+
+.lens {
+  color: var(--line-strong);
+  transition: color 0.15s;
+}
+
+.stage:hover .lens,
+.stage--dragging .lens {
   color: var(--blue);
 }
 
-.frame-formats {
-  margin-top: 16px;
-  font-size: 0.9rem;
+/* Cantos de enquadramento, no lugar da borda tracejada */
+.corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--line-strong);
+}
+
+.corner--tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+.corner--tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
+.corner--bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
+.corner--br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+
+.stage:hover .corner,
+.stage--dragging .corner {
+  border-color: var(--blue);
 }
 
 /* Continua acessível pelo teclado, ao contrário de display: none */
@@ -226,23 +323,65 @@ export default {
   pointer-events: none;
 }
 
-.picker:has(#file-upload:focus-visible) .frame {
-  outline: 3px solid var(--blue);
-  outline-offset: 3px;
+.picker:has(#file-upload:focus-visible) .stage {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
 }
 
-.picker-actions {
+.infobar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 24px;
-  margin-top: 20px;
+  gap: 4px 16px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.file-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-detail {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.change-image {
+  margin-left: auto;
+  color: var(--blue);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.change-image:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-foot {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--line);
 }
 
 .upload-button {
-  padding: 14px 28px;
+  width: 100%;
+  padding: 11px 16px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--blue);
   color: var(--on-blue);
   font: inherit;
@@ -256,8 +395,8 @@ export default {
 }
 
 .upload-button:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 3px;
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .upload-button:disabled {
@@ -266,25 +405,48 @@ export default {
   cursor: not-allowed;
 }
 
-.change-image {
-  color: var(--blue);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
+.model {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  font-size: 0.8125rem;
 }
 
-.file-name {
-  margin-top: 12px;
+.model div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.model dt {
   color: var(--muted);
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
 }
 
-@media (max-width: 760px) {
-  .workspace {
+.model dd {
+  font-family: var(--mono);
+}
+
+.notice {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  .viewer {
     grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
+  }
+
+  .picker {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stage {
+    min-height: 0;
   }
 }
 </style>

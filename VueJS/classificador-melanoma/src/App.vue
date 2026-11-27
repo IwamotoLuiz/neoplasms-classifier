@@ -4,109 +4,137 @@ import ThemeToggle from './components/ThemeToggle.vue'
 </script>
 
 <template>
-  <div class="page">
-    <header class="page-header">
-      <div>
-        <h1>Classificação de neoplasmas cutâneos</h1>
-        <p>Uma rede neural analisa a imagem dermatoscópica e indica se a lesão parece benigna ou maligna.</p>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+          <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.5" />
+          <circle cx="16" cy="16" r="4.5" fill="currentColor" />
+        </svg>
+        <h1>Classificador de neoplasmas cutâneos</h1>
       </div>
-      <ThemeToggle />
+      <div class="topbar-side">
+        <span class="course">TCC · Sistemas de Informação · Unesp Bauru</span>
+        <ThemeToggle />
+      </div>
     </header>
-    <main>
+
+    <main class="content">
       <ImageUploader />
     </main>
-    <footer class="page-footer">
-      <span>Trabalho de Conclusão de Curso de Luiz Paulo Iwamoto, Sistemas de Informação, Unesp Bauru</span>
+
+    <footer class="statusbar">
+      <span>Luiz Paulo Iwamoto</span>
       <span class="samples">
-        <a href="/amostras/amostra-1.jpg" download>amostra 1</a> ·
+        <a href="/amostras/amostra-1.jpg" download>amostra 1</a>
         <a href="/amostras/amostra-2.jpg" download>amostra 2</a>
       </span>
-      <a href="https://github.com/IwamotoLuiz/neoplasms-classifier">Código no GitHub</a>
+      <a class="repo" href="https://github.com/IwamotoLuiz/neoplasms-classifier">Código no GitHub</a>
     </footer>
   </div>
 </template>
 
 <style scoped>
-.page {
+.app {
   display: flex;
   flex-direction: column;
-  max-width: 1060px;
   min-height: 100vh;
-  margin: 0 auto;
-  padding: 48px 32px 28px;
 }
 
-.page-header {
+.topbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px 32px;
-  margin-bottom: 40px;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
-.page-header h1 {
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.15;
-  text-wrap: balance;
-}
-
-.page-header h1::after {
-  content: '';
-  display: block;
-  width: 72px;
-  height: 5px;
-  margin: 16px 0;
-  background: var(--blue);
-}
-
-.page-header p {
-  max-width: 62ch;
-  color: var(--muted);
-}
-
-main {
-  flex: 1;
-}
-
-.page-footer {
+.brand {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 24px;
-  margin-top: 56px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.9rem;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.page-footer a {
+.brand-mark {
+  flex-shrink: 0;
   color: var(--blue);
 }
 
+.brand h1 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.topbar-side {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.course {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 24px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
 /* Discretos de propósito: imagens de apoio para a demonstração */
-.page-footer .samples a {
+.samples {
+  display: flex;
+  gap: 12px;
+}
+
+.samples a {
   color: inherit;
   text-decoration: none;
 }
 
-.page-footer .samples a:hover,
-.page-footer .samples a:focus-visible {
+.samples a:hover,
+.samples a:focus-visible {
   text-decoration: underline;
 }
 
+.repo {
+  margin-left: auto;
+  color: var(--blue);
+}
+
 @media (max-width: 760px) {
-  .page {
-    padding: 32px 20px 24px;
+  .topbar {
+    padding: 12px 16px;
   }
 
-  .page-header {
-    flex-direction: column-reverse;
+  .course {
+    display: none;
   }
 
-  .page-header .theme-toggle {
-    align-self: flex-end;
+  .content {
+    padding: 16px;
+  }
+
+  .statusbar {
+    padding: 10px 16px;
   }
 }
 </style>
